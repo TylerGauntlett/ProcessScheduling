@@ -9,8 +9,9 @@
 #define ROUND_ROBIN 2
 #define ERROR -1
 #define SUCCESS 1
-#define MAX_INPUT_LINE_SIZE 101
+#define MAX_INPUT_LINE_SIZE 256
 #define MAX_PROCESS_DIGIT_NUMBER 10 //A signed integer's max value is ten digits long
+#define MAX_PROCESS_COUNT 128
 
 //Struct Definition
 typedef struct{
@@ -25,6 +26,7 @@ int getRunTime(FILE* fpIn);
 int getProcessAlgorithm(FILE *fpIn);
 int getRoundRobinQuantum(FILE *fpIn);
 int getProcessesInformation(FILE *fpIn, proc* processes, int procCount);
+void printProcessesArray(proc* processes, int procCount);
 
 //Main
 int main()
@@ -35,7 +37,6 @@ int main()
     int procAlgo = ERROR;
     int timeQuantum = ERROR;
     int i;
-    proc *processes;
     FILE* fpIn = fopen("./processes.in","r");
 
     if(fpIn == NULL){
@@ -75,14 +76,13 @@ int main()
             }
     }
     //Assign Processes
-    processes = malloc(procCount * sizeof(proc)); //Creates array of of struct values
-    //Error Check
+    proc* processes = (proc*)malloc(procCount * sizeof(proc));
     if(processes == NULL){
         printf("Not enough memory is available in heap to store processes.\n");
         fclose(fpIn);
         return EXIT_FAILURE;
     }
-    getProcessesInformation(fpIn, processes, procCount);
+   getProcessesInformation(fpIn, processes, procCount);
 
     //All that follows is for Debugging/Testing
     printf("Process Count: %i\n", procCount);
@@ -92,6 +92,7 @@ int main()
     if(procAlgo == ROUND_ROBIN){
         printf("Time Quantum: %i\n", timeQuantum);
     }
+    printProcessesArray(processes,procCount);
 
     free(processes);
     fclose(fpIn);
@@ -299,7 +300,6 @@ int getProcessAlgorithm(FILE *fpIn){
     int useFound = 0;
 
     inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
-
     if(inputLine == NULL){
         free(inputLine);
         return ERROR;
@@ -398,7 +398,7 @@ int getRoundRobinQuantum(FILE *fpIn){
         //Check if line is a comment
         if(inputLine[i] == '#'){
             //Clear string array
-            memset(&inputLine[0],0,sizeof(inputLine));
+            memset(inputLine,0,sizeof(inputLine));
             //Get next line
             inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
             //Next line is empty/EOF
@@ -458,6 +458,7 @@ int getRoundRobinQuantum(FILE *fpIn){
         return ERROR;}
 
     //Convert String 'result' into an integer and return value
+    //Note: If number has 10 digits but is greater than MAX_INTEGER the MAX_INTEGER's value is returned and no error is thrown
     if((sscanf(result, "%i", &timeQuantum) == 1) && (timeQuantum > 0)){
     free(inputLine);
     return timeQuantum;}
@@ -473,41 +474,346 @@ int getRoundRobinQuantum(FILE *fpIn){
  *Sets and malloc's processes array
  *Returns ERROR (-1) if parsing error occurs, otherwise returns SUCCESS (1);
  */
-int getProcessesInformation(FILE *fpIN, proc* processes,  int procCount){
-    int result = ERROR;
-    int i;
-    int procNameLength = 6;
-    char* name = "tacos";
-    //@TODO get values in loop from file
-    //Proof of concept code
-    /*
-    for(i = 0; i < procCount;i++){
-        processes[i].procName = (char*)malloc(sizeof(char)*procNameLength+1);
-            //Error Check
-        if(processes[i].procName == NULL){
-            return result;
+int getProcessesInformation(FILE *fpIn, proc* processes,  int procCount){
+    //Variables
+    int storedProcNum = 0;
+    int i = 0;
+    char** arrayOfProcNames;
+    char* currentProcName;
+    int currentProcNameSize;
+    int currentProcArrival;
+    int currentProcBurst;
+    int lineLength = 0;
+    int processStrFound = 0;
+    int nameStrFound = 0;
+
+    //Initialize Rows in 2D Name Array
+    arrayOfProcNames = (char**) malloc(sizeof(char*) * procCount);
+
+    //Error Checking
+    char* inputLine = malloc(sizeof(char)*(int)MAX_INPUT_LINE_SIZE);
+    if(inputLine == NULL || arrayOfProcNames == NULL){
+        printf("Not enough memory in heap to store process list.\n");
+        free(arrayOfProcNames);
+        return ERROR;
+    }
+
+    //Function Logic
+    inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
+    lineLength = strlen(inputLine);
+
+    /* Stores all process information (Name, Arrival Time, and Burst Length)
+     * in processes (a proc struct array)
+     */
+    for(storedProcNum = 0; storedProcNum < procCount; storedProcNum++){
+        /*
+         *Searches for the keywords 'process' and 'name' appearing
+         *consecutively (with any number of spaces/comments between them
+         */
+        while(nameStrFound == 0 && processStrFound == 0 && i < lineLength){
+        //printf("Line: %s\n", inputLine);
+        //Comment Line or empty line found
+            if(inputLine[0] == '#' || (inputLine[0] == '\n' && inputLine[1] == '\0')){
+            //Clear input line array
+            memset(inputLine,0,sizeof(inputLine));
+            //Get next line
+            inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
+            lineLength = strlen(inputLine);
+            i = 0;
+            //Next line is empty/EOF
+                if(inputLine == NULL){
+                    //Free individual processes' data
+                    int j;
+                    for(j = 0; j < storedProcNum; j++){
+                        free(&processes[j]);
+                    }
+                    free(arrayOfProcNames);
+                    free(inputLine);
+                    return ERROR;
+                }
+            }
+            //Letter found
+            else if(isalpha(inputLine[i])){
+                //'process' Check
+                char* targetString = "process";
+                if( inputLine[i] == targetString[0] &&
+                    inputLine[i+1] == targetString[1] &&
+                    inputLine[i+2] == targetString[2] &&
+                    inputLine[i+3] == targetString[3] &&
+                    inputLine[i+4] == targetString[4] &&
+                    inputLine[i+5] == targetString[5] &&
+                    inputLine[i+6] == targetString[6]){
+                        //'name' search begins
+                        i += strlen(targetString); //update index
+                        processStrFound = 1; //update flag
+                        while(nameStrFound == 0){
+                            //Comment check
+                            if(inputLine[i] == '#' || (inputLine[0] == '\n' && inputLine[1] == '\0')){
+                            //Clear input line array
+                            memset(inputLine,0,sizeof(inputLine));
+                            //Get next line
+                            inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
+                            //Next line is empty/EOF
+                            if(inputLine == NULL){
+                                //Free individual processes' data
+                                int j;
+                                for(j = 0; j < storedProcNum; j++){
+                                    free(&processes[j]);
+                                }
+                                free(arrayOfProcNames);
+                                free(inputLine);
+                                return ERROR;
+                            }
+                        i = 0;
+                        lineLength = strlen(inputLine);
+                        }
+                        //'name' Check
+                        else if(isalpha(inputLine[i])){
+                            char* nameStr = "name";
+                                if( inputLine[i]   == nameStr[0] &&
+                                    inputLine[i+1] == nameStr[1] &&
+                                    inputLine[i+2] == nameStr[2] &&
+                                    inputLine[i+3] == nameStr[3]){
+                                        nameStrFound = 1; //Updates flag
+                                        i += strlen(nameStr);
+                                }
+                        }
+                        //Space found after word 'process'
+                        else{
+                            i++;
+                        }
+                    }
+                }
+            }
+            //Space in current array index
+            else{
+            i++;
+            }
         }
-        processes[i].procName = name;
-        processes[i].procArrival = malloc(sizeof(int));
-              //Error Check
-        if(processes[i].procArrival == NULL){
-            return result;
+    //Error Check: End of line that contained (uncommented) strings but no process declaration was reached
+    if(i == lineLength){
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
         }
-        processes[i].procArrival = 0;
-        processes[i].procBurst = malloc(sizeof(int));
-              //Error Check
-        if(processes[i].procBurst == NULL){
-            return result;
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    //Move line index past spaces
+    while(isspace(inputLine[i])){
+        i++;
+    }
+    //Store Process Size
+    currentProcNameSize = 0;
+    int procNameStartIndex = i;
+    while(isalnum(inputLine[i])){
+        currentProcNameSize++;
+        i++;
+    }
+    //Store Process Name (O(n + n) = O(2n) = O(n), right?)
+    currentProcName = malloc(sizeof(char)* currentProcNameSize + 1);
+    arrayOfProcNames[storedProcNum] = malloc(sizeof(char)* currentProcNameSize + 1);
+    int j;
+    for(j = procNameStartIndex; j < i; j++){
+        currentProcName[j - procNameStartIndex] = inputLine[j];
+    }
+    //Create permanent copy of name for proc struct
+    memcpy(arrayOfProcNames[storedProcNum], currentProcName, strlen(currentProcName)+1);
+    //Set process name
+    processes[storedProcNum].procName = arrayOfProcNames[storedProcNum];
+    //Move past spaces
+    while(isspace(inputLine[i]) && i < lineLength){
+        i++;
+    }
+    //Check for keyword 'arrival' (Assumes there is no comments between process lines)
+    int procArrivalFound = 0;
+    if(isalpha(inputLine[i])){
+        char* nameStr = "arrival";
+        if( inputLine[i]   == nameStr[0] &&
+            inputLine[i+1] == nameStr[1] &&
+            inputLine[i+2] == nameStr[2] &&
+            inputLine[i+3] == nameStr[3] &&
+            inputLine[i+4] == nameStr[4] &&
+            inputLine[i+5] == nameStr[5] &&
+            inputLine[i+6] == nameStr[6])
+            {
+                procArrivalFound = 1; //Updates flag
+                i += strlen(nameStr);
+            }
+    }
+    //Error: 'arrival' keyword not found
+    if(procArrivalFound == 0){
+        printf("\"arrival\" keyword not found\n");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
         }
-        processes[i].procBurst = 10;
-       }
-     //For debugging
-       for(i = 0; i<procCount; i++ ){
-        printf("Struct test:\n %s\t\t%i\t\t%i\n", *(processes[i]).procName, *(processes[i]).procArrival, *(processes[i]).procBurst);
-       }
-    */
-result = SUCCESS;
-return result;
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    //Move past spaces
+    while(isspace(inputLine[i]) && i < lineLength){
+        i++;
+    }
+    //Error: Arrival time (digit) not found
+    if( !(isdigit(inputLine[i])) ){
+        printf("'arrival' keyword found but arrival time not found on same line\n");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
+        }
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    char arrivalTimeAsString[MAX_PROCESS_DIGIT_NUMBER]; //Temporary arrival time storage
+    int arrivalStringTempIndex = 0;
+    //Temporarily store Arrival Time as string
+    while(isdigit(inputLine[i]) ){
+        arrivalTimeAsString[arrivalStringTempIndex] = inputLine[i];
+        i++;
+        arrivalStringTempIndex++;
+    }
+    arrivalTimeAsString[arrivalStringTempIndex] = (int)NULL;
+    //Convert arrivalTimeAsString to Integer and store its value in currentProcArrival
+    if((sscanf(arrivalTimeAsString, "%i", &currentProcArrival) != 1) && (currentProcArrival >= 0)){
+        //Error converting occurred
+        printf("Arrival time could not be properly converted.");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
+        }
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    //Create storage space in struct
+    processes[storedProcNum].procArrival = malloc(sizeof(int));
+    //Copy Integer value to struct
+    memcpy(&processes[storedProcNum].procArrival, &currentProcArrival, sizeof(int));
+
+    //Begin Processing Burst Length
+
+    //Move past space
+    while(isspace(inputLine[i]) && i < lineLength){
+        i++;
+    }
+    //Check for keyword 'burst' (Assumes there is no comments between process lines)
+    int procBurstFound = 0;
+    if(isalpha(inputLine[i])){
+        char* nameStr = "burst";
+        if( inputLine[i]   == nameStr[0] &&
+            inputLine[i+1] == nameStr[1] &&
+            inputLine[i+2] == nameStr[2] &&
+            inputLine[i+3] == nameStr[3] &&
+            inputLine[i+4] == nameStr[4])
+            {
+                procBurstFound = 1; //Updates flag
+                i += strlen(nameStr);
+            }
+    }
+    //Error: 'burst' keyword not found
+    if(procBurstFound == 0){
+        printf("\"burst\" keyword not found\n");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
+        }
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    //Move past spaces
+    while(isspace(inputLine[i]) && i < lineLength){
+        i++;
+    }
+    //Error: Burst time (digit) not found
+    if( !(isdigit(inputLine[i])) ){
+        printf("'burst' keyword found but burst time not found on same line\n");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
+        }
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    char burstLengthAsString[MAX_PROCESS_DIGIT_NUMBER]; //Temporary arrival time storage
+    int burstLengtTempIndex = 0;
+    //Temporarily store Arrival Time as string
+    while(isdigit(inputLine[i]) ){
+        burstLengthAsString[burstLengtTempIndex] = inputLine[i];
+        i++;
+        burstLengtTempIndex++;
+    }
+    burstLengthAsString[burstLengtTempIndex] = (int)NULL;
+    //Convert arrivalTimeAsString to Integer and store its value in currentProcArrival
+    if((sscanf(burstLengthAsString, "%i", &currentProcBurst) != 1) && (currentProcBurst >= 0)){
+        //Error converting occurred
+        printf("Burst time could not be properly converted.");
+        int j;
+        for(j = 0; j < storedProcNum; j++){
+            free(&processes[j]);
+        }
+        free(currentProcName);
+        free(arrayOfProcNames);
+        free(inputLine);
+        return ERROR;
+    }
+    //Create storage space in struct
+    processes[storedProcNum].procBurst = malloc(sizeof(int));
+    //Copy Integer value to struct
+    memcpy(&processes[storedProcNum].procBurst, &currentProcBurst, sizeof(int));
+
+    //Get next line
+    memset(inputLine,0,sizeof(inputLine));
+    inputLine = fgets(inputLine,(int)MAX_INPUT_LINE_SIZE,fpIn);
+    lineLength = strlen(inputLine);
+    i = 0;
+
+    //Check if next line is empty/EOF
+        if(inputLine == NULL){
+        //Free individual processes' data
+            int j;
+            for(j = 0; j < storedProcNum; j++){
+                free(&processes[j]);
+            }
+                free(inputLine);
+                return ERROR;
+        }
+    //Reset Flags, Name, A
+    nameStrFound = 0;
+    processStrFound = 0;
+    currentProcArrival = 0;
+    currentProcBurst = 0;
+
+    }
+    //proc fakeStruct = {fakeName,fakeArrival,fakeBurst};
+
+    //@TODO get values in loop from
+
+return SUCCESS;
+}
+
+//For Debugging
+void printProcessesArray(proc* processes, int procCount){
+    int idx;
+
+    for(idx = 0; idx < procCount; idx++){
+        printf("\n");
+        printf("Process #%i Name: %s \n", (idx+1),processes[idx].procName);
+        printf("Process #%i Arrival: %i\n", (idx+1),processes[idx].procArrival);
+        printf("Process #%i Burst: %i\n", (idx+1),processes[idx].procBurst);
+    }
+
+
 }
 
 
