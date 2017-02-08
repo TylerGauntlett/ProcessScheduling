@@ -831,7 +831,7 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
     int isWaitingFlag[procCount];
     int wait[procCount];
     int turnAround[procCount];
-    int i, j, currRunning = -1, curr = 0, lookahead = 1;
+    int i, j, curr = 0;
 
     for (i=0; i<procCount; i++)
     {
@@ -873,13 +873,20 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
                 {
                     fprintf(fpOut, "Time %d: %s finished \n", i, processes[j].procName);
                     isRunningFlag[j] = 0;
+
                     if ((j+1) < procCount && isWaitingFlag[j+1] == 1)
                     {
                         isRunningFlag[j+1] = 1;
                         isWaitingFlag[j+1] = 0;
+                        curr++;
 
                         fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j+1].procName, burstTimes[j+1]);
                         turnAround[j+1] = wait[j+1] + burstTimes[j+1];
+                    }
+                    else if ((j+1) < procCount)
+                    {
+                        curr++;
+                        continue;
                     }
                     else
                     {
@@ -900,9 +907,6 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
 
         }
     }
-
-    //for()
-
 
     for (i=0; i<procCount; i++)
     {
