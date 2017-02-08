@@ -825,14 +825,20 @@ void printProcessesArray(proc* processes, int procCount){
 }
 
 void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtime){
+
+    // create arrays to hold the information for each process
     int startTimes[procCount];
     int burstTimes[procCount];
+    // create arrays to hold flags for each process
     int isRunningFlag[procCount];
     int isWaitingFlag[procCount];
+    // create arrays to hold the wait and turn around values
     int wait[procCount];
     int turnAround[procCount];
+    // create helper variables
     int i, j, curr = 0;
 
+    // loop through all of the processes, get the arrival and burst times, set other values to zero
     for (i=0; i<procCount; i++)
     {
         startTimes[i] = processes[i].procArrival;
@@ -843,71 +849,84 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
         turnAround[i] = 0;
     }
 
+    // print file header
     fprintf(fpOut, "%d processes \n", procCount);
     fprintf(fpOut, "Using First Come First Served \n\n");
 
+    // loop through for the entire runtime (inclusive)
     for (i=0; i<= runtime; i++)
     {
-
+        // at each time, loop through each process
         for (j=0; j< procCount; j++)
         {
+            // check to see if the process's start time is the current time
             if (startTimes[j] == i)
             {
+                // print that the process arrived
                 fprintf(fpOut, "Time %d: %s arrived \n", i, processes[j].procName);
 
+                // check if there are no other processes running; print that you select it, store the value of turnAround
                 if (j == curr)
                 {
                     fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j].procName, burstTimes[j]);
                     isRunningFlag[j] = 1;
                     turnAround[j] = wait[j] + burstTimes[j];
                 }
+                // if not, mark this process as waiting
                 else
                 {
                     isWaitingFlag[j] = 1;
                 }
             }
-
+            // check if the current process is running
             if (isRunningFlag[j] == 1)
             {
+                // checks if the process is over
                 if (burstTimes[j]==0)
                 {
+                    // print the time that it finished, mark the process as not running
                     fprintf(fpOut, "Time %d: %s finished \n", i, processes[j].procName);
                     isRunningFlag[j] = 0;
-
+                    // check to see if there is another process in the array, and if it is currently waiting
                     if ((j+1) < procCount && isWaitingFlag[j+1] == 1)
                     {
+                        // mark it as running and not waiting, increment curr
                         isRunningFlag[j+1] = 1;
                         isWaitingFlag[j+1] = 0;
                         curr++;
 
+                        // print that you select it, store the value of turnAround
                         fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j+1].procName, burstTimes[j+1]);
                         turnAround[j+1] = wait[j+1] + burstTimes[j+1];
                     }
+                    // check to see if there is another process (hasn't arrived yet)
                     else if ((j+1) < procCount)
                     {
+                        // increment curr
                         curr++;
                         continue;
                     }
+                    // if there are no more processes to run, print the time finished and break out of the loop
                     else
                     {
                         fprintf(fpOut, "Finished at time %d \n\n", i);
                         break;
                     }
                 }
-
+                // decrement the processes burst time at each time cycle
                 else
                 {
                     burstTimes[j]--;
                 }
             }
+            // check to see if the process is waiting, if so increment the wait counter for the process
             else if (isWaitingFlag[j] == 1)
             {
                 wait[j]++;
             }
-
         }
     }
-
+    // loop through for each process outputting the results
     for (i=0; i<procCount; i++)
     {
         if ((turnAround[i]+startTimes[i]) <= runtime)
