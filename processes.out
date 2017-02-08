@@ -1,29 +1,29 @@
 6 processes 
 Using First Come First Served 
 
-Time 0: P1 arrived 
-Time 0: P1 selected (burst 22) 
-Time 1: P2 arrived 
-Time 2: P3 arrived 
-Time 3: P4 arrived 
-Time 9: P5 arrived 
-Time 22: P1 finished 
-Time 22: P2 selected (burst 1) 
-Time 23: P2 finished 
-Time 23: P3 selected (burst 22) 
-Time 45: P3 finished 
-Time 45: P4 selected (burst 10) 
-Time 55: P4 finished 
-Time 55: P5 selected (burst 29) 
-Time 84: P5 finished 
+Time 0: P1² arrived 
+Time 0: P1² selected (burst 22) 
+Time 1: P2² arrived 
+Time 2: P3² arrived 
+Time 3: P4² arrived 
+Time 9: P5² arrived 
+Time 22: P1² finished 
+Time 22: P2² selected (burst 1) 
+Time 23: P2² finished 
+Time 23: P3² selected (burst 22) 
+Time 45: P3² finished 
+Time 45: P4² selected (burst 10) 
+Time 55: P4² finished 
+Time 55: P5² selected (burst 29) 
+Time 84: P5² finished 
 Time 100: P6 arrived 
 Time 100: P6 selected (burst 9) 
 Time 109: P6 finished 
 Finished at time 109 
 
-P1 wait 0 turnaround 22 
-P2 wait 21 turnaround 22 
-P3 wait 21 turnaround 43 
-P4 wait 42 turnaround 52 
-P5 wait 46 turnaround 75 
+P1² wait 0 turnaround 22 
+P2² wait 21 turnaround 22 
+P3² wait 21 turnaround 43 
+P4² wait 42 turnaround 52 
+P5² wait 46 turnaround 75 
 P6 wait 0 turnaround 9 
