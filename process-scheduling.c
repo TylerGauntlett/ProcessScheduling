@@ -27,6 +27,7 @@ int getProcessAlgorithm(FILE *fpIn);
 int getRoundRobinQuantum(FILE *fpIn);
 int getProcessesInformation(FILE *fpIn, proc* processes, int procCount);
 void printProcessesArray(proc* processes, int procCount);
+void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtime);
 
 //Main
 int main()
@@ -93,6 +94,12 @@ int main()
         printf("Time Quantum: %i\n", timeQuantum);
     }
     printProcessesArray(processes,procCount);
+
+    FILE* fpOut = fopen("processes.out", "w");
+
+    if (procAlgo == FIRST_COME_FIRST_SERVED){
+        firstComeFirstServe(fpOut, processes, procCount, runTime);
+    }
 
     free(processes);
     fclose(fpIn);
@@ -611,6 +618,7 @@ int getProcessesInformation(FILE *fpIn, proc* processes,  int procCount){
         currentProcNameSize++;
         i++;
     }
+
     //Store Process Name (O(n + n) = O(2n) = O(n), right?)
     currentProcName = malloc(sizeof(char)* currentProcNameSize + 1);
     arrayOfProcNames[storedProcNum] = malloc(sizeof(char)* currentProcNameSize + 1);
@@ -816,6 +824,99 @@ void printProcessesArray(proc* processes, int procCount){
 
 }
 
+void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtime){
+    int startTimes[procCount];
+    int burstTimes[procCount];
+    int isRunningFlag[procCount];
+    int isWaitingFlag[procCount];
+    int wait[procCount];
+    int turnAround[procCount];
+    int i, j, currRunning = -1, curr = 0, lookahead = 1;
+
+    for (i=0; i<procCount; i++)
+    {
+        startTimes[i] = processes[i].procArrival;
+        burstTimes[i] = processes[i].procBurst;
+        isRunningFlag[i] = 0;
+        isWaitingFlag[i] = 0;
+        wait[i] = 0;
+        turnAround[i] = 0;
+    }
+
+    fprintf(fpOut, "%d processes \n", procCount);
+    fprintf(fpOut, "Using First Come First Served \n\n");
+
+    for (i=0; i<= runtime; i++)
+    {
+
+        for (j=0; j< procCount; j++)
+        {
+            if (startTimes[j] == i)
+            {
+                fprintf(fpOut, "Time %d: %s arrived \n", i, processes[j].procName);
+
+                if (j == curr)
+                {
+                    fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j].procName, burstTimes[j]);
+                    isRunningFlag[j] = 1;
+                    turnAround[j] = wait[j] + burstTimes[j];
+                }
+                else
+                {
+                    isWaitingFlag[j] = 1;
+                }
+            }
+
+            if (isRunningFlag[j] == 1)
+            {
+                if (burstTimes[j]==0)
+                {
+                    fprintf(fpOut, "Time %d: %s finished \n", i, processes[j].procName);
+                    isRunningFlag[j] = 0;
+                    if ((j+1) < procCount && isWaitingFlag[j+1] == 1)
+                    {
+                        isRunningFlag[j+1] = 1;
+                        isWaitingFlag[j+1] = 0;
+
+                        fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j+1].procName, burstTimes[j+1]);
+                        turnAround[j+1] = wait[j+1] + burstTimes[j+1];
+                    }
+                    else
+                    {
+                        fprintf(fpOut, "Finished at time %d \n\n", i);
+                        break;
+                    }
+                }
+
+                else
+                {
+                    burstTimes[j]--;
+                }
+            }
+            else if (isWaitingFlag[j] == 1)
+            {
+                wait[j]++;
+            }
+
+        }
+    }
+
+    //for()
+
+
+    for (i=0; i<procCount; i++)
+    {
+        if ((turnAround[i]+startTimes[i]) <= runtime)
+        {
+            fprintf(fpOut, "%s wait %d turnaround %d \n", processes[i].procName, wait[i], turnAround[i]);
+        }
+        else
+        {
+            fprintf(fpOut, "%s wait %d \n", processes[i].procName, wait[i]);
+            fprintf(fpOut, "%s did not finish \n", processes[i].procName);
+        }
+    }
+}
 
 
 
