@@ -850,7 +850,7 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
     int wait[procCount];
     int turnAround[procCount];
     // create helper variables
-    int i, j, curr = 0, alreadyFinishedFlag=0;
+    int i, j, curr = 0, alreadyFinishedFlag=0, isIdleFlag=1;
 
     // loop through all of the processes, get the arrival and burst times, set other values to zero
     for (i=0; i<procCount; i++)
@@ -883,6 +883,7 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
                 if (j == curr)
                 {
                     fprintf(fpOut, "Time %d: %s selected (burst %d) \n", i, processes[j].procName, burstTimes[j]);
+                    isIdleFlag=0;
                     isRunningFlag[j] = 1;
                     turnAround[j] = wait[j] + burstTimes[j];
                 }
@@ -918,7 +919,7 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
                     {
                         // increment curr
                         curr++;
-                        fprintf(fpOut, "Time %d: IDLE \n", i);
+                        isIdleFlag=1;
                         continue;
                     }
                     // if there are no more processes to run, print the time finished and break out of the loop
@@ -940,6 +941,11 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
             {
                 wait[j]++;
             }
+        }
+
+        if (isIdleFlag==1)
+        {
+            fprintf(fpOut, "Time %d: IDLE \n", i);
         }
     }
     // if the processes didn't finish before the runtime was over, output that it finished at the runtime
