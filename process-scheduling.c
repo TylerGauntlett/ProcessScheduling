@@ -26,6 +26,7 @@ int getRunTime(FILE* fpIn);
 int getProcessAlgorithm(FILE *fpIn);
 int getRoundRobinQuantum(FILE *fpIn);
 int getProcessesInformation(FILE *fpIn, proc* processes, int procCount);
+int procCompare(const void*  procOne,const void* procTwo);
 void printProcessesArray(proc* processes, int procCount);
 void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtime);
 
@@ -39,7 +40,8 @@ int main()
     int timeQuantum = ERROR;
     int i;
     FILE* fpIn = fopen("./processes.in","r");
-
+	
+	//Error check
     if(fpIn == NULL){
         printf("File \"processes.in\" not found in current directory.\n");
         fclose(fpIn);
@@ -72,37 +74,49 @@ int main()
         //Quantum not found
             if(timeQuantum == ERROR){
                 printf("Could not determine time quantum for round-robin algorithm.\n");
-            fclose(fpIn);
-            return EXIT_FAILURE;
+        	    fclose(fpIn);
+    	        return EXIT_FAILURE;
             }
     }
-    //Assign Processes
+    //Initilize space for array of processes
     proc* processes = (proc*)malloc(procCount * sizeof(proc));
     if(processes == NULL){
         printf("Not enough memory is available in heap to store processes.\n");
         fclose(fpIn);
         return EXIT_FAILURE;
     }
-   getProcessesInformation(fpIn, processes, procCount);
+	//Fills processes array with their name, arrival time, and burst length (respectively)	
+    getProcessesInformation(fpIn, processes, procCount);
+	
+	//Sorts processes by arrival time using quicksort
+	qsort(processes, procCount, sizeof(proc), procCompare);		
 
-    //All that follows is for Debugging/Testing
+    //The next 7 lines that follows are for Debugging/Testing (REMOVE BEFORE TURNING IN)
     printf("Process Count: %i\n", procCount);
     printf("Run Time: %i\n", runTime);
-    printf("Algorithm  (0 is fcfs)  (1 is sjf)  (2 is rr):  %i\n", procAlgo);
-
+    printf("Algorithm  (0 is fcfs)  (1 is sjf)  (2 is rr):  %i\n", procAlgo);	
     if(procAlgo == ROUND_ROBIN){
         printf("Time Quantum: %i\n", timeQuantum);
     }
-    printProcessesArray(processes,procCount);
-
+	printProcessesArray(processes,procCount);
+	
+	//Open/Create/Override output pile
     FILE* fpOut = fopen("processes.out", "w");
-
-    if (procAlgo == FIRST_COME_FIRST_SERVED){
-        firstComeFirstServe(fpOut, processes, procCount, runTime);
-    }
-
+	if(fpOut == NULL){
+	printf("Error creating output file");
     free(processes);
     fclose(fpIn);
+	return EXIT_FAILURE;
+	}
+	/**CALL ALGORITHMS**/
+	 if (procAlgo == FIRST_COME_FIRST_SERVED){
+        firstComeFirstServe(fpOut, processes, procCount, runTime);
+    }
+	
+	//Memory Management
+    free(processes);
+    fclose(fpIn);
+	fclose(fpOut);	
     return 0;
 }
 
@@ -817,8 +831,8 @@ void printProcessesArray(proc* processes, int procCount){
     for(idx = 0; idx < procCount; idx++){
         printf("\n");
         printf("Process #%i Name: %s \n", (idx+1),processes[idx].procName);
-        printf("Process #%i Arrival: %i\n", (idx+1),processes[idx].procArrival);
-        printf("Process #%i Burst: %i\n", (idx+1),processes[idx].procBurst);
+        printf("Process #%i Arrival: %i\n", (idx+1),(int)processes[idx].procArrival);
+        printf("Process #%i Burst: %i\n", (idx+1),(int)processes[idx].procBurst);
     }
 
 
@@ -841,8 +855,8 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
     // loop through all of the processes, get the arrival and burst times, set other values to zero
     for (i=0; i<procCount; i++)
     {
-        startTimes[i] = processes[i].procArrival;
-        burstTimes[i] = processes[i].procBurst;
+        startTimes[i] = (int)processes[i].procArrival;
+        burstTimes[i] = (int)processes[i].procBurst;
         isRunningFlag[i] = 0;
         isWaitingFlag[i] = 0;
         wait[i] = 0;
@@ -940,6 +954,12 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
         }
     }
 }
-
-
-
+//Used by quicksort
+int procCompare(const void * procOne, const void* procTwo){	
+	int arrivalTimeOne  =(int)( (const proc*)procOne)->procArrival;
+	int arrivalTimeTwo  =(int)( (const proc*)procTwo)->procArrival;
+	
+	if(arrivalTimeOne < arrivalTimeTwo){ return -1;}
+	if(arrivalTimeOne > arrivalTimeTwo){ return  1;}
+	return 0;
+}
