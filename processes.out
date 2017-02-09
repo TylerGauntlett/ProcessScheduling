@@ -1,41 +1,43 @@
 10 processes 
 Using First Come First Served 
 
-Time 0: P1 arrived 
-Time 0: P1 selected (burst 2000) 
+Time 0: P1ß arrived 
+Time 0: P1ß selected (burst 2000) 
 Time 1: p2 arrived 
-Time 2: P3 arrived 
-Time 3: P4 arrived 
-Time 4: P5 arrived 
+Time 2: P3ß arrived 
+Time 3: P4ß arrived 
+Time 4: P5ß arrived 
 Time 100: P6 arrived 
 Time 101: P7 arrived 
-Time 2000: P1 finished 
+Time 2000: P1ß finished 
 Time 2000: p2 selected (burst 1) 
 Time 2001: p2 finished 
-Time 2001: P3 selected (burst 9) 
-Time 2010: P3 finished 
-Time 2010: P4 selected (burst 4) 
-Time 2014: P4 finished 
-Time 2014: P5 selected (burst 5) 
-Time 2019: P5 finished 
+Time 2001: P3ß selected (burst 9) 
+Time 2010: P3ß finished 
+Time 2010: P4ß selected (burst 4) 
+Time 2014: P4ß finished 
+Time 2014: P5ß selected (burst 5) 
+Time 2019: P5ß finished 
 Time 2019: P6 selected (burst 2) 
 Time 2021: P6 finished 
 Time 2021: P7 selected (burst 39) 
 Time 2060: P7 finished 
+Time 2060: IDLE 
 Time 2993: P8 arrived 
 Time 2993: P8 selected (burst 3) 
 Time 2995: P9 arrived 
 Time 2996: P8 finished 
 Time 2996: P9 selected (burst 9000) 
 Time 3000: P10 arrived 
-P1 wait 0 turnaround 2000 
+Finished at time 3000 
+
+P1ß wait 0 turnaround 2000 
 p2 wait 1999 turnaround 2000 
-P3 wait 1999 turnaround 2008 
-P4 wait 2007 turnaround 2011 
-P5 wait 2010 turnaround 2015 
+P3ß wait 1999 turnaround 2008 
+P4ß wait 2007 turnaround 2011 
+P5ß wait 2010 turnaround 2015 
 P6 wait 1919 turnaround 1921 
 P7 wait 1920 turnaround 1959 
 P8 wait 0 turnaround 3 
-P9 wait 1 
 P9 did not finish 
-P10 wait 1 turnaround 0 
+P10 did not finish 

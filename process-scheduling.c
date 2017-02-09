@@ -40,7 +40,7 @@ int main()
     int timeQuantum = ERROR;
     int i;
     FILE* fpIn = fopen("./processes.in","r");
-	
+
 	//Error check
     if(fpIn == NULL){
         printf("File \"processes.in\" not found in current directory.\n");
@@ -85,21 +85,21 @@ int main()
         fclose(fpIn);
         return EXIT_FAILURE;
     }
-	//Fills processes array with their name, arrival time, and burst length (respectively)	
+	//Fills processes array with their name, arrival time, and burst length (respectively)
     getProcessesInformation(fpIn, processes, procCount);
-	
+
 	//Sorts processes by arrival time using quicksort
-	qsort(processes, procCount, sizeof(proc), procCompare);		
+	qsort(processes, procCount, sizeof(proc), procCompare);
 
     //The next 7 lines that follows are for Debugging/Testing (REMOVE BEFORE TURNING IN)
     printf("Process Count: %i\n", procCount);
     printf("Run Time: %i\n", runTime);
-    printf("Algorithm  (0 is fcfs)  (1 is sjf)  (2 is rr):  %i\n", procAlgo);	
+    printf("Algorithm  (0 is fcfs)  (1 is sjf)  (2 is rr):  %i\n", procAlgo);
     if(procAlgo == ROUND_ROBIN){
         printf("Time Quantum: %i\n", timeQuantum);
     }
 	printProcessesArray(processes,procCount);
-	
+
 	//Open/Create/Override output pile
     FILE* fpOut = fopen("processes.out", "w");
 	if(fpOut == NULL){
@@ -112,11 +112,11 @@ int main()
 	 if (procAlgo == FIRST_COME_FIRST_SERVED){
         firstComeFirstServe(fpOut, processes, procCount, runTime);
     }
-	
+
 	//Memory Management
     free(processes);
     fclose(fpIn);
-	fclose(fpOut);	
+	fclose(fpOut);
     return 0;
 }
 
@@ -850,7 +850,7 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
     int wait[procCount];
     int turnAround[procCount];
     // create helper variables
-    int i, j, curr = 0;
+    int i, j, curr = 0, alreadyFinishedFlag=0;
 
     // loop through all of the processes, get the arrival and burst times, set other values to zero
     for (i=0; i<procCount; i++)
@@ -918,12 +918,14 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
                     {
                         // increment curr
                         curr++;
+                        fprintf(fpOut, "Time %d: IDLE \n", i);
                         continue;
                     }
                     // if there are no more processes to run, print the time finished and break out of the loop
                     else
                     {
                         fprintf(fpOut, "Finished at time %d \n\n", i);
+                        alreadyFinishedFlag = 1;
                         break;
                     }
                 }
@@ -940,25 +942,30 @@ void firstComeFirstServe (FILE *fpOut, proc*processes, int procCount, int runtim
             }
         }
     }
+    // if the processes didn't finish before the runtime was over, output that it finished at the runtime
+    if (alreadyFinishedFlag == 0)
+    {
+        fprintf(fpOut, "Finished at time %d \n\n", runtime);
+    }
+
     // loop through for each process outputting the results
     for (i=0; i<procCount; i++)
     {
-        if ((turnAround[i]+startTimes[i]) <= runtime)
+        if (burstTimes[i]==0)
         {
             fprintf(fpOut, "%s wait %d turnaround %d \n", processes[i].procName, wait[i], turnAround[i]);
         }
         else
         {
-            fprintf(fpOut, "%s wait %d \n", processes[i].procName, wait[i]);
             fprintf(fpOut, "%s did not finish \n", processes[i].procName);
         }
     }
 }
 //Used by quicksort
-int procCompare(const void * procOne, const void* procTwo){	
+int procCompare(const void * procOne, const void* procTwo){
 	int arrivalTimeOne  =(int)( (const proc*)procOne)->procArrival;
 	int arrivalTimeTwo  =(int)( (const proc*)procTwo)->procArrival;
-	
+
 	if(arrivalTimeOne < arrivalTimeTwo){ return -1;}
 	if(arrivalTimeOne > arrivalTimeTwo){ return  1;}
 	return 0;
